@@ -1,0 +1,6 @@
+../Core/Src/dtc_manager.c:11:6:DTC_Init	4	static
+../Core/Src/dtc_manager.c:24:6:DTC_Set	24	static
+../Core/Src/dtc_manager.c:41:6:DTC_Clear	24	static
+../Core/Src/dtc_manager.c:59:6:DTC_IsSet	16	static
+../Core/Src/dtc_manager.c:71:10:DTC_GetStatusBitmask	4	static
+../Core/Src/dtc_manager.c:80:6:DTC_SetStatusBitmask	16	static

@@ -1,0 +1,2 @@
+../Core/Src/can_manager.c:12:19:CAN_Manager_Init	16	static
+../Core/Src/can_manager.c:33:19:CAN_Manager_Transmit_DTC	48	static

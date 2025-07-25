@@ -1,0 +1,9 @@
+../Core/Src/eeprom_25lc256.c:25:13:EEPROM_CS_Low	8	static
+../Core/Src/eeprom_25lc256.c:33:13:EEPROM_CS_High	8	static
+../Core/Src/eeprom_25lc256.c:41:13:EEPROM_WriteEnable	16	static
+../Core/Src/eeprom_25lc256.c:52:13:EEPROM_WaitForWriteComplete	16	static
+../Core/Src/eeprom_25lc256.c:67:6:EEPROM_Init	24	static
+../Core/Src/eeprom_25lc256.c:77:19:EEPROM_Read_DMA	24	static
+../Core/Src/eeprom_25lc256.c:108:19:EEPROM_Write_DMA	32	static
+../Core/Src/eeprom_25lc256.c:166:6:HAL_SPI_TxCpltCallback	16	static
+../Core/Src/eeprom_25lc256.c:179:6:HAL_SPI_RxCpltCallback	16	static

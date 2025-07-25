@@ -20,10 +20,15 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "mp5475gu_driver.h"
+#include "dtc_manager.h"
+#include "eeprom_25lc256.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "can_manager.h"
+#include <string.h>
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -173,7 +178,9 @@ int main(void)
   MX_SPI2_Init();
   MX_UART4_Init();
   /* USER CODE BEGIN 2 */
-
+  mp5475gu_init();
+  EEPROM_Init(&hspi1, GPIOC, GPIO_PIN_4);
+  CAN_Manager_Init(&hcan1);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -649,10 +656,56 @@ void StartDefaultTask(void *argument)
 void StartI2CTask(void *argument)
 {
   /* USER CODE BEGIN StartI2CTask */
+  MP5475GU_StatusUV_t uv_status;
+  HAL_StatusTypeDef ret;
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    if (osMutexAcquire(CommMutexHandleHandle, osWaitForever) == osOK){
+
+      // TODO: Add I2C communication code here.
+      mp5475gu_set_vout(&hi2c1, BUCK_A, 1.2f);
+      osDelay(100);
+      
+      // 1. Read the UV status from the PMIC
+      ret = mp5475gu_read_uv_status(&hi2c1, &uv_status);
+      if (ret == HAL_OK) {
+        // 2. Update DTCs based on the read status
+
+        // Check Buck A
+        if (uv_status.bits.BUCKA_UV) {
+          DTC_Set(DTC_PMIC_BUCK_A_UNDERVOLTAGE);
+        } else {
+          DTC_Clear(DTC_PMIC_BUCK_A_UNDERVOLTAGE);
+        }
+  
+        // Check Buck B
+        if (uv_status.bits.BUCKB_UV) {
+          DTC_Set(DTC_PMIC_BUCK_B_UNDERVOLTAGE);
+        } else {
+          DTC_Clear(DTC_PMIC_BUCK_B_UNDERVOLTAGE);
+        }
+  
+        // Check Buck C
+        if (uv_status.bits.BUCKC_UV) {
+          DTC_Set(DTC_PMIC_BUCK_C_UNDERVOLTAGE);
+        } else {
+          DTC_Clear(DTC_PMIC_BUCK_C_UNDERVOLTAGE);
+        }
+  
+        // Check Buck D
+        if (uv_status.bits.BUCKD_UV) {
+          DTC_Set(DTC_PMIC_BUCK_D_UNDERVOLTAGE);
+        } else {
+          DTC_Clear(DTC_PMIC_BUCK_D_UNDERVOLTAGE);
+        }
+      }
+
+      osMutexRelease(CommMutexHandleHandle);
+
+      // Wait for the next monitoring cycle
+      osDelay(100); // Check every 100ms
+    }
   }
   /* USER CODE END StartI2CTask */
 }
@@ -667,10 +720,25 @@ void StartI2CTask(void *argument)
 void StartSPITask(void *argument)
 {
   /* USER CODE BEGIN StartSPITask */
+  uint8_t dtc_data;
+  uint16_t dtc_address;
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    if (osMutexAcquire(CommMutexHandleHandle, osWaitForever) == osOK){
+
+      // TODO: Add SPI communication code here.
+      dtc_data = DTC_GetStatusBitmask();
+      dtc_address = 0x0000;
+      if (EEPROM_Write_DMA(dtc_address, &dtc_data, 1) == HAL_OK) {
+        // 쓰기 성공
+      } else {
+        // 쓰기 실패
+      }
+
+      osMutexRelease(CommMutexHandleHandle);
+    }
+    osDelay(100);
   }
   /* USER CODE END StartSPITask */
 }
@@ -685,12 +753,22 @@ void StartSPITask(void *argument)
 void StartCANTask(void *argument)
 {
   /* USER CODE BEGIN StartCANTask */
+  uint8_t dtc_data;
+  uint16_t dtc_address = 0x0000;
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    if (osMutexAcquire(CommMutexHandleHandle, osWaitForever) == osOK){
+
+      if (EEPROM_Read_DMA(dtc_address, &dtc_data, 1) == HAL_OK) {
+        CAN_Manager_Transmit_DTC(&hcan1, &dtc_data, 1);
+      }
+      
+      osMutexRelease(CommMutexHandleHandle);
+    }
+    osDelay(1000); // Transmit every 1 second
   }
-  /* USER CODE END StartCANTask */
+  /* USER CODE END StartCANTA_Task */
 }
 
 /* USER CODE BEGIN Header_StartUARTTask */
@@ -703,10 +781,42 @@ void StartCANTask(void *argument)
 void StartUARTTask(void *argument)
 {
   /* USER CODE BEGIN StartUARTTask */
+  CAN_Command_t cmd;
+  uint8_t dtc_value;
+  uint16_t dtc_address = 0x0000;
+  char uart_msg[50];
+
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    cmd = CAN_Manager_Get_Command();
+
+    if (cmd != CMD_NONE) {
+      if (osMutexAcquire(CommMutexHandleHandle, osWaitForever) == osOK) {
+        switch (cmd) {
+          case CMD_CLEAR_DTC:
+            dtc_value = 0x00; // Clear DTCs
+            EEPROM_Write_DMA(dtc_address, &dtc_value, 1);
+            DTC_ClearAll(); // Also clear in-memory representation
+            snprintf(uart_msg, sizeof(uart_msg), "DTCs Cleared.\r\n");
+            HAL_UART_Transmit(&huart4, (uint8_t*)uart_msg, strlen(uart_msg), 100);
+            break;
+
+          case CMD_READ_DTC:
+            EEPROM_Read_DMA(dtc_address, &dtc_value, 1);
+            snprintf(uart_msg, sizeof(uart_msg), "DTC Value: 0x%02X\r\n", dtc_value);
+            HAL_UART_Transmit(&huart4, (uint8_t*)uart_msg, strlen(uart_msg), 100);
+            break;
+
+          default:
+            break;
+        }
+        CAN_Manager_Clear_Command(); // Reset command after processing
+        osMutexRelease(CommMutexHandleHandle);
+      }
+    }
+
+    osDelay(200); // Poll for commands every 200ms
   }
   /* USER CODE END StartUARTTask */
 }

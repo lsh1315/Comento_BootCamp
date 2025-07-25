@@ -1,0 +1,6 @@
+../Core/Src/mp5475gu_driver.c:9:6:mp5475gu_init	8	static
+../Core/Src/mp5475gu_driver.c:21:19:mp5475gu_set_vout	40	static
+../Core/Src/mp5475gu_driver.c:65:19:mp5475gu_read_uv_status	32	static
+../Core/Src/mp5475gu_driver.c:88:6:HAL_I2C_MemTxCpltCallback	16	static
+../Core/Src/mp5475gu_driver.c:101:6:HAL_I2C_MemRxCpltCallback	16	static
+../Core/Src/mp5475gu_driver.c:112:6:HAL_I2C_ErrorCallback	16	static
