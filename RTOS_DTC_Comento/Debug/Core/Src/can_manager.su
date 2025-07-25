@@ -1,2 +1,10 @@
-../Core/Src/can_manager.c:12:19:CAN_Manager_Init	16	static
-../Core/Src/can_manager.c:33:19:CAN_Manager_Transmit_DTC	48	static
+../Core/Src/can_manager.c:31:19:CAN_Manager_Init	56	static
+../Core/Src/can_manager.c:70:19:CAN_Manager_Transmit_DTC	24	static
+../Core/Src/can_manager.c:89:15:CAN_Manager_Get_Command	4	static
+../Core/Src/can_manager.c:94:6:CAN_Manager_Clear_Command	4	static
+../Core/Src/can_manager.c:101:13:CAN_Send_Next_Frame	40	static
+../Core/Src/can_manager.c:127:13:Process_CAN_Response	16	static
+../Core/Src/can_manager.c:140:6:HAL_CAN_TxMailbox0CompleteCallback	16	static
+../Core/Src/can_manager.c:145:6:HAL_CAN_TxMailbox1CompleteCallback	16	static
+../Core/Src/can_manager.c:150:6:HAL_CAN_TxMailbox2CompleteCallback	16	static
+../Core/Src/can_manager.c:160:6:HAL_CAN_RxFifo0MsgPendingCallback	16	static

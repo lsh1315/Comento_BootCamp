@@ -1,2 +1,10 @@
-../Core/Src/can_manager.c:12:19:CAN_Manager_Init	3
-../Core/Src/can_manager.c:33:19:CAN_Manager_Transmit_DTC	5
+../Core/Src/can_manager.c:31:19:CAN_Manager_Init	4
+../Core/Src/can_manager.c:70:19:CAN_Manager_Transmit_DTC	4
+../Core/Src/can_manager.c:89:15:CAN_Manager_Get_Command	1
+../Core/Src/can_manager.c:94:6:CAN_Manager_Clear_Command	1
+../Core/Src/can_manager.c:101:13:CAN_Send_Next_Frame	5
+../Core/Src/can_manager.c:127:13:Process_CAN_Response	3
+../Core/Src/can_manager.c:140:6:HAL_CAN_TxMailbox0CompleteCallback	2
+../Core/Src/can_manager.c:145:6:HAL_CAN_TxMailbox1CompleteCallback	2
+../Core/Src/can_manager.c:150:6:HAL_CAN_TxMailbox2CompleteCallback	2
+../Core/Src/can_manager.c:160:6:HAL_CAN_RxFifo0MsgPendingCallback	3

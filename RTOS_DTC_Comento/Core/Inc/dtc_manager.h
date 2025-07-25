@@ -39,6 +39,11 @@ void DTC_Set(DTC_Code_t code);
 void DTC_Clear(DTC_Code_t code);
 
 /**
+ * @brief Clears all DTCs.
+ */
+void DTC_ClearAll(void);
+
+/**
  * @brief Checks if a specific DTC is currently set.
  * @param code The DTC to check.
  * @return true if the DTC is set, false otherwise.

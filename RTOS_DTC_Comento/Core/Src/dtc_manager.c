@@ -52,6 +52,15 @@ void DTC_Clear(DTC_Code_t code)
 }
 
 /**
+ * @brief Clears all DTCs.
+ */
+void DTC_ClearAll(void)
+{
+    dtc_status_bitmask = 0;
+    // Example: EEPROM_Write(DTC_STATUS_ADDRESS, dtc_status_bitmask);
+}
+
+/**
  * @brief Checks if a specific DTC is currently set.
  * @param code The DTC to check.
  * @return true if the DTC is set, false otherwise.
