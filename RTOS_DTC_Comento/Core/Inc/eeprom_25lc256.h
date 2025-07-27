@@ -9,6 +9,7 @@
 #define INC_EEPROM_25LC256_H_
 
 #include "stm32f4xx_hal.h"
+#include "cmsis_os.h"
 
 /* EEPROM Commands */
 #define EEPROM_CMD_READ  0x03  // Read data from memory

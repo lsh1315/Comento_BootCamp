@@ -13,9 +13,8 @@ static SPI_HandleTypeDef* s_hspi;
 static GPIO_TypeDef* s_cs_port;
 static uint16_t s_cs_pin;
 
-// Volatile flag for DMA transfer completion
-static volatile uint8_t spi_dma_tx_complete = 0;
-static volatile uint8_t spi_dma_rx_complete = 0;
+// RTOS-related static variables
+static osSemaphoreId_t spi_dma_semaphore;
 
 // --- Private Helper Functions ---
 
@@ -70,6 +69,10 @@ void EEPROM_Init(SPI_HandleTypeDef* hspi, GPIO_TypeDef* cs_port, uint16_t cs_pin
     s_cs_port = cs_port;
     s_cs_pin = cs_pin;
 
+    // Create a binary semaphore for DMA synchronization
+    // Initial count is 0, so the first acquire will block.
+    spi_dma_semaphore = osSemaphoreNew(1, 0, NULL);
+
     // Ensure CS is high initially
     EEPROM_CS_High();
 }
@@ -80,8 +83,6 @@ HAL_StatusTypeDef EEPROM_Read_DMA(uint16_t address, uint8_t* p_data, uint16_t si
     header[0] = EEPROM_CMD_READ;
     header[1] = (address >> 8) & 0xFF; // MSB
     header[2] = address & 0xFF;        // LSB
-
-    spi_dma_rx_complete = 0;
 
     EEPROM_CS_Low();
     // Send Read command and address
@@ -96,12 +97,16 @@ HAL_StatusTypeDef EEPROM_Read_DMA(uint16_t address, uint8_t* p_data, uint16_t si
         return HAL_ERROR;
     }
 
-    // Wait for DMA transfer to complete
-    while (spi_dma_rx_complete == 0) {
-        // You can add a timeout mechanism here if needed
-    }
+    // Wait for DMA transfer to complete by acquiring the semaphore
+    // The task will be blocked here until the ISR releases the semaphore.
+    osStatus_t sem_status = osSemaphoreAcquire(spi_dma_semaphore, osWaitForever);
 
     EEPROM_CS_High();
+
+    if (sem_status != osOK) {
+        return HAL_ERROR; // Semaphore error
+    }
+
     return HAL_OK;
 }
 
@@ -121,8 +126,6 @@ HAL_StatusTypeDef EEPROM_Write_DMA(uint16_t address, uint8_t* p_data, uint16_t s
         header[1] = (address >> 8) & 0xFF; // MSB
         header[2] = address & 0xFF;        // LSB
 
-        spi_dma_tx_complete = 0;
-
         EEPROM_CS_Low();
 
         // Send Write command and address
@@ -137,12 +140,14 @@ HAL_StatusTypeDef EEPROM_Write_DMA(uint16_t address, uint8_t* p_data, uint16_t s
             return HAL_ERROR;
         }
 
-        // Wait for DMA transfer to complete
-        while (spi_dma_tx_complete == 0) {
-            // You can add a timeout mechanism here if needed
-        }
+        // Wait for DMA transfer to complete by acquiring the semaphore
+        osStatus_t sem_status = osSemaphoreAcquire(spi_dma_semaphore, osWaitForever);
 
         EEPROM_CS_High();
+
+        if (sem_status != osOK) {
+            return HAL_ERROR; // Semaphore error
+        }
 
         // Wait for the internal write cycle of the EEPROM to finish
         EEPROM_WaitForWriteComplete();
@@ -166,7 +171,8 @@ HAL_StatusTypeDef EEPROM_Write_DMA(uint16_t address, uint8_t* p_data, uint16_t s
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 {
     if (hspi->Instance == s_hspi->Instance) {
-        spi_dma_tx_complete = 1;
+        // Release the semaphore to unblock the waiting task
+        osSemaphoreRelease(spi_dma_semaphore);
     }
 }
 
@@ -179,6 +185,7 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 {
     if (hspi->Instance == s_hspi->Instance) {
-        spi_dma_rx_complete = 1;
+        // Release the semaphore to unblock the waiting task
+        osSemaphoreRelease(spi_dma_semaphore);
     }
 }
